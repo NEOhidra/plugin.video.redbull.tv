@@ -10,6 +10,7 @@ class Client():
         pass
 
     def url_to_path(self, url):
+        url = url.split('?')[0]
         if url.startswith(self.API_URL):
             url = url.replace(self.API_URL, '')
             pass
@@ -18,8 +19,15 @@ class Client():
             pass
         return url
 
-    def do_raw(self, path, offset=None, limit=30):
-        return self._perform_v1_request(path=path)
+    def do_raw(self, path, offset=None, limit=None):
+        params = {}
+        if offset or offset is not None:
+            params['offset'] = str(offset)
+            pass
+        if limit or limit is not None:
+            params['limit'] = str(limit)
+            pass
+        return self._perform_v1_request(path=path, params=params)
 
     def get_channels(self):
         return self._perform_v1_request(path='channels')

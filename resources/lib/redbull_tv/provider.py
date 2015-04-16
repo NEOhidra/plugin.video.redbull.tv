@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
-from resources.lib.kodion.items import DirectoryItem, VideoItem
+import urlparse
+from resources.lib.kodion.items import DirectoryItem, VideoItem, NextPageItem
 
 __author__ = 'bromix'
 
@@ -37,9 +38,11 @@ class Provider(kodion.AbstractProvider):
     @kodion.RegisterProviderPath('^/(?P<path>.+)/$')
     def _on_path(self, context, re_match):
         path = re_match.group('path')
+        offset = context.get_param('offset', None)
+        limit = context.get_param('limit', None)
 
         client = self.get_client(context)
-        return self._response_to_items(context, client.do_raw(path=path))
+        return self._response_to_items(context, client.do_raw(path=path, offset=offset, limit=limit))
 
     def _response_to_items(self, context, response):
         client = self.get_client(context)
@@ -202,7 +205,22 @@ class Provider(kodion.AbstractProvider):
             pass
 
         #meta (next page)
+        next_page = _get_path_from_url(response, 'next_page')
+        if next_page:
+            next_page_url = response.get('meta', {}).get('links', {}).get('next_page', '')
+            next_page_url = next_page_url.split('?')
+            if len(next_page_url) > 1:
+                params = dict(urlparse.parse_qsl(next_page_url[1]))
 
+                new_params = {}
+                new_params.update(context.get_params())
+                new_params.update(params)
+                new_context = context.clone(new_params=new_params)
+                current_page = int(context.get_param('page', '1'))
+                next_page_item = NextPageItem(new_context, current_page, fanart=self.get_fanart(new_context))
+                result.append(next_page_item)
+                pass
+            pass
 
         return result
 

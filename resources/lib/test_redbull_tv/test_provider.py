@@ -43,6 +43,15 @@ class TestProvider(unittest.TestCase):
         items = result[0]
         pass
 
+    def test_on_channel_sports_videos(self):
+        provider = Provider()
+
+        path = kodion.utils.create_path('/channels/sports/videos/')
+        context = kodion.Context(path=path)
+        result = provider.navigate(context)
+        items = result[0]
+        pass
+
     def test_on_shows_episodes(self):
         provider = Provider()
 
