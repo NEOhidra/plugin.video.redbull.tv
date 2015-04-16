@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import urlparse
-from resources.lib.kodion.items import DirectoryItem, VideoItem, NextPageItem
+from resources.lib.kodion.items import DirectoryItem, VideoItem, NextPageItem, UriItem
 
 __author__ = 'bromix'
 
@@ -89,7 +89,8 @@ class Provider(kodion.AbstractProvider):
             _fanart = _get_image(_item, 'background', _width=1280, _height=720, fallback=self.get_fanart(context))
 
             _path = _get_path_from_url(_item, 'self')
-            _channel_item = DirectoryItem(_title, uri=context.create_uri([_path], params={'channel_id': _channel_id}), image=_image, fanart=_fanart)
+            _channel_item = DirectoryItem(_title, uri=context.create_uri([_path], params={'channel_id': _channel_id}),
+                                          image=_image, fanart=_fanart)
             return _channel_item
 
         def _do_channel_content(_item):
@@ -97,7 +98,7 @@ class Provider(kodion.AbstractProvider):
 
             _make_bold = False
             _sub_channels = _item.get('sub_channels', [])
-            if len(_sub_channels)>0:
+            if len(_sub_channels) > 0:
                 _make_bold = True
                 pass
 
@@ -161,7 +162,9 @@ class Provider(kodion.AbstractProvider):
             _fanart = _get_image(_show, 'background', _width=1280, _height=720, fallback=self.get_fanart(context))
 
             _path = _get_path_from_url(_item, 'self')
-            _video_item = VideoItem(_title, uri=context.create_uri([_path]), image=_image, fanart=_fanart)
+            _video_id = _item['id']
+            _video_item = VideoItem(_title, uri=context.create_uri(['play'], {'video_id': _video_id}), image=_image,
+                                    fanart=_fanart)
 
             _plot = _item.get('long_description', _item.get('short_description', ''))
             _video_item.set_plot(_plot)
@@ -170,8 +173,8 @@ class Provider(kodion.AbstractProvider):
             if _duration:
                 _duration = kodion.utils.datetime_parser.parse(_duration)
                 _seconds = _duration.second
-                _seconds += _duration.minute*60
-                _seconds += _duration.hour*60*60
+                _seconds += _duration.minute * 60
+                _seconds += _duration.hour * 60 * 60
                 _video_item.set_duration_from_seconds(_seconds)
                 pass
 
@@ -207,7 +210,7 @@ class Provider(kodion.AbstractProvider):
                 result.extend(_do_channel_content(response))
             return result
 
-        #channels
+        # channels
         channels = []
         response_channels = response.get('channels', [])
         for response_channel in response_channels:
@@ -234,7 +237,6 @@ class Provider(kodion.AbstractProvider):
             video_item = _do_video_item(respnse_video)
             videos.append(video_item)
             pass
-
 
         featured_items = response.get('featured_items', [])
         for featured_item in featured_items:
@@ -296,6 +298,22 @@ class Provider(kodion.AbstractProvider):
             pass
 
         return result
+
+    @kodion.RegisterProviderPath('^/play/$')
+    def on_play(self, context, re_match):
+        def _compare(item):
+            vq = context.get_settings().get_video_quality()
+            return vq - item['format'].get('height', 0)
+
+        video_id = context.get_param('video_id', '')
+        if not video_id:
+            return False
+
+        client = self.get_client(context)
+        streams = client.get_streams(video_id, bandwidth=1) # middle
+        stream = kodion.utils.find_best_fit(streams, _compare)
+        uri_item = UriItem(stream['url'])
+        return uri_item
 
     def on_search(self, search_text, context, re_match):
         client = self.get_client(context)

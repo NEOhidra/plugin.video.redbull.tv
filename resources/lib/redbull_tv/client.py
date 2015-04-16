@@ -1,3 +1,5 @@
+import re
+
 __author__ = 'bromix'
 
 from resources.lib.kodion import simple_requests as requests
@@ -9,6 +11,67 @@ class Client():
     def __init__(self, limit=None):
         self._limit = limit
         pass
+
+    def get_streams(self, video_id, bandwidth=None):
+        streams = []
+
+        path = 'videos/%s' % str(video_id)
+        json_data = self._perform_v1_request(path=path)
+        uri = json_data.get('videos', {}).get('master', {}).get('uri', '')
+        if uri:
+            headers = {'Connection': 'keep-alive',
+                       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                       'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.118 Safari/537.36',
+                       'DNT': '1',
+                       'Referer': 'https://api.redbull.tv/v1/videos/%s' % str(video_id),
+                       'Accept-Encoding': 'gzip',
+                       'Accept-Language': 'en-US,en;q=0.8,de;q=0.6'}
+            manifest_result = requests.get(uri, headers=headers, verify=False, allow_redirects=True)
+            lines = manifest_result.text.splitlines()
+            re_line = re.compile(r'BANDWIDTH=(?P<bandwidth>\d+),RESOLUTION=(?P<width>\d+)x(?P<height>\d+)')
+            for i in range(len(lines)):
+                re_match = re.search(re_line, lines[i])
+                if re_match:
+                    line = lines[i + 1]
+                    format = {'width': int(re_match.group('width')),
+                              'height': int(re_match.group('height')),
+                              'bandwidth': int(re_match.group('bandwidth'))}
+                    video_stream = {'url': line,
+                                    'format': format}
+                    streams.append(video_stream)
+                    pass
+                pass
+            pass
+
+        def _sort(x):
+            return x['format']['height'],x['format']['bandwidth']
+
+        streams = sorted(streams, key=_sort, reverse=True)
+
+        # filter the bandwidth
+        if bandwidth is not None:
+            bandwidth_dict = {}
+            for stream in streams:
+                quality = stream['format']['height']
+                data = bandwidth_dict.get(quality, [])
+                data.append(stream)
+                bandwidth_dict[quality] = data
+                pass
+
+            streams = []
+            for quality in bandwidth_dict:
+                quality_list = bandwidth_dict[quality]
+                index = bandwidth
+                if index > len(quality_list)-1:
+                    index = len(quality_list)-1
+                    pass
+
+                streams.append(quality_list[index])
+                pass
+            pass
+
+        streams = sorted(streams, key=_sort, reverse=True)
+        return streams
 
     def url_to_path(self, url):
         url = url.split('?')[0]
