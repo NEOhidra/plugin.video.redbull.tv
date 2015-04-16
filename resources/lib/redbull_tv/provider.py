@@ -211,6 +211,9 @@ class Provider(kodion.AbstractProvider):
         channels = []
         response_channels = response.get('channels', [])
         for response_channel in response_channels:
+            if response_channel.get('id', '') == 'live':
+                continue
+
             channel_item = _do_channel_item(response_channel)
             channels.append(channel_item)
             pass
