@@ -4,8 +4,22 @@ from resources.lib.kodion import simple_requests as requests
 
 
 class Client():
+    API_URL = 'https://api.redbull.tv/v1/'
+
     def __init__(self):
         pass
+
+    def url_to_path(self, url):
+        if url.startswith(self.API_URL):
+            url = url.replace(self.API_URL, '')
+            pass
+        if not url.endswith('/'):
+            url += '/'
+            pass
+        return url
+
+    def do_raw(self, path, offset=None, limit=30):
+        return self._perform_v1_request(path=path)
 
     def get_channels(self):
         return self._perform_v1_request(path='channels')
