@@ -15,7 +15,9 @@ class Provider(kodion.AbstractProvider):
         self._local_map.update({'redbull.shows': 30500,
                                 'redbull.films': 30501,
                                 'redbull.videos': 30502,
-                                'redbull.clips': 30503})
+                                'redbull.clips': 30503,
+                                'redbull.featured': 30504,
+                                'redbull.featured_shows': 30505})
         self._client = None
         pass
 
@@ -27,7 +29,7 @@ class Provider(kodion.AbstractProvider):
         return self._client
 
     def get_wizard_supported_views(self):
-        return ['default', 'episodes', 'movies', 'tvshows']
+        return ['default', 'episodes', 'tvshows']
 
     def get_alternative_fanart(self, context):
         return self.get_fanart(context)
@@ -72,27 +74,47 @@ class Provider(kodion.AbstractProvider):
 
         def _do_channel_item(_item):
             _title = _item['title']
+
+            # change main => 'Red Bull TV'
+            _channel_id = _item['id']
+            if _channel_id == 'main':
+                _title = u'Red Bull TV'
+                pass
             _image = _get_image(_item, 'portrait', _width=440)
             _fanart = _get_image(_item, 'background', _width=1280, _height=720, fallback=self.get_fanart(context))
 
             _path = _get_path_from_url(_item, 'self')
-            _channel_item = DirectoryItem(_title, uri=context.create_uri([_path]), image=_image, fanart=_fanart)
+            _channel_item = DirectoryItem(_title, uri=context.create_uri([_path], params={'channel_id': _channel_id}), image=_image, fanart=_fanart)
             return _channel_item
 
         def _do_channel_content(_item):
             _result = []
 
-            for _sub_category in ['shows', 'films', 'videos', 'clips']:
+            _make_bold = False
+            _sub_channels = _item.get('sub_channels', [])
+            if len(_sub_channels)>0:
+                _make_bold = True
+                pass
+
+            # alternative dict for sub categories based on the channel id
+            _channel_sub_category_dict = {'main': ['featured', 'featured_shows']}
+
+            # based on the channel id we can change the sub categories
+            _channel_id = context.get_param('channel_id', '')
+            _sub_categories = _channel_sub_category_dict.get(_channel_id, ['shows', 'films', 'videos', 'clips'])
+            for _sub_category in _sub_categories:
                 _sub_category_path = _get_path_from_url(_item, _sub_category)
                 if _sub_category_path:
-                    _sub_category_item = DirectoryItem(context.localize(self._local_map['redbull.%s' % _sub_category]),
-                                                       uri=context.create_uri([_sub_category_path]))
+                    _title = context.localize(self._local_map['redbull.%s' % _sub_category]);
+                    if _make_bold:
+                        _title = '[B]%s[/B]' % _title
+                        pass
+                    _sub_category_item = DirectoryItem(_title, uri=context.create_uri([_sub_category_path]))
                     _result.append(_sub_category_item)
                     pass
                 pass
 
             # sub channels
-            _sub_channels = _item.get('sub_channels', [])
             for _sub_channel in _sub_channels:
                 _channel_item = _do_channel_item(_sub_channel)
                 _result.append(_channel_item)
@@ -105,6 +127,12 @@ class Provider(kodion.AbstractProvider):
             _fanart = _get_image(_item, 'background', _width=1280, _height=720, fallback=self.get_fanart(context))
 
             _path = _get_path_from_url(_item, 'episodes')
+            # in the case of the main channel, we sometime get no correct uri for the episodes of the show
+            # we try to compensate the problem here
+            if _path == '/':
+                _show_id = _item['id']
+                _path = 'shows/%s/episodes' % _show_id
+                pass
             _show_item = DirectoryItem(_title, uri=context.create_uri([_path]), image=_image, fanart=_fanart)
             return _show_item
 
@@ -126,7 +154,7 @@ class Provider(kodion.AbstractProvider):
             _path = _get_path_from_url(_item, 'self')
             _video_item = VideoItem(_title, uri=context.create_uri([_path]), image=_image, fanart=_fanart)
 
-            _plot = _item.get('long_description', '')
+            _plot = _item.get('long_description', _item.get('short_description', ''))
             _video_item.set_plot(_plot)
 
             _duration = _item.get('duration', '')
@@ -171,37 +199,55 @@ class Provider(kodion.AbstractProvider):
             return result
 
         #channels
-        channels = response.get('channels', [])
-        for channel in channels:
-            channel_item = _do_channel_item(channel)
-            result.append(channel_item)
+        channels = []
+        response_channels = response.get('channels', [])
+        for response_channel in response_channels:
+            channel_item = _do_channel_item(response_channel)
+            channels.append(channel_item)
             pass
+        result.extend(channels)
 
         #shows
-        shows = response.get('shows', [])
-        for show in shows:
-            show_item = _do_show_item(show)
-            result.append(show_item)
-            pass
-        if shows:
-            context.set_content_type(kodion.constants.content_type.TV_SHOWS)
+        shows = []
+        response_shows = response.get('shows', [])
+        for response_show in response_shows:
+            show_item = _do_show_item(response_show)
+            shows.append(show_item)
             pass
 
         #videos
-        videos = response.get('videos', [])
-        video_type = ''
-        for video in videos:
-            video_type = video.get('type', 'episode')
-            video_item = _do_video_item(video)
-            result.append(video_item)
+        videos = []
+        response_videos = response.get('videos', [])
+        for respnse_video in response_videos:
+            video_item = _do_video_item(respnse_video)
+            videos.append(video_item)
             pass
-        if video_type:
-            if video_type == 'clip' or video_type == 'episode':
-                context.set_content_type(kodion.constants.content_type.EPISODES)
+
+
+        featured_items = response.get('featured_items', [])
+        for featured_item in featured_items:
+            feature_type = featured_item.get('type', '')
+            if feature_type == 'clip' or feature_type == 'episode' or feature_type == 'film':
+                video_item = _do_video_item(featured_item)
+                videos.append(video_item)
                 pass
-            elif video_type == 'film':
-                context.set_content_type(kodion.constants.content_type.MOVIES)
+            elif feature_type == 'series':
+                show_item = _do_show_item(featured_item)
+                shows.append(show_item)
                 pass
+            else:
+                raise kodion.KodionException('Unknown feature type "%s"' % feature_type)
+            pass
+
+        result.extend(shows)
+        result.extend(videos)
+
+        if len(videos) > 0:
+            context.set_content_type(kodion.constants.content_type.EPISODES)
+            pass
+
+        if len(shows) > 0:
+            context.set_content_type(kodion.constants.content_type.TV_SHOWS)
             pass
 
         #meta (next page)

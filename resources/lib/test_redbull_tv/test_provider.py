@@ -70,4 +70,22 @@ class TestProvider(unittest.TestCase):
         items = result[0]
         pass
 
+    def test_on_channel_main_featured(self):
+        provider = Provider()
+
+        path = kodion.utils.create_path('/channels/main/featured')
+        context = kodion.Context(path=path)
+        result = provider.navigate(context)
+        items = result[0]
+        pass
+
+    def test_on_channel_main_featured_shows(self):
+        provider = Provider()
+
+        path = kodion.utils.create_path('/channels/main/shows/featured')
+        context = kodion.Context(path=path)
+        result = provider.navigate(context)
+        items = result[0]
+        pass
+
     pass
