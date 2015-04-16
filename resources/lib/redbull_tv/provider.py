@@ -23,7 +23,8 @@ class Provider(kodion.AbstractProvider):
 
     def get_client(self, context):
         if not self._client:
-            self._client = Client()
+            items_per_page = context.get_settings().get_items_per_page()
+            self._client = Client(limit=items_per_page)
             pass
 
         return self._client
@@ -37,7 +38,7 @@ class Provider(kodion.AbstractProvider):
     def get_fanart(self, context):
         return context.create_resource_path('media', 'fanart.jpg')
 
-    @kodion.RegisterProviderPath('^/(?P<path>.+)/$')
+    @kodion.RegisterProviderPath('^/redbull/(?P<path>.+)/$')
     def _on_path(self, context, re_match):
         path = re_match.group('path')
         offset = context.get_param('offset', None)
@@ -70,7 +71,11 @@ class Provider(kodion.AbstractProvider):
         def _get_path_from_url(_item, _name):
             url = _item.get('meta', {}).get('links', {}).get(_name, '')
             path = client.url_to_path(url)
-            return path
+            if not path or path == '/':
+                return ''
+
+            path = 'redbull/%s' % path
+            return path.replace('//', '/')
 
         def _do_channel_item(_item):
             _title = _item['title']
@@ -110,6 +115,7 @@ class Provider(kodion.AbstractProvider):
                         _title = '[B]%s[/B]' % _title
                         pass
                     _sub_category_item = DirectoryItem(_title, uri=context.create_uri([_sub_category_path]))
+                    _sub_category_item.set_fanart(self.get_fanart(context))
                     _result.append(_sub_category_item)
                     pass
                 pass
@@ -121,17 +127,20 @@ class Provider(kodion.AbstractProvider):
                 pass
             return _result
 
-        def _do_show_item(_item):
+        def _do_show_item(_item, make_bold=False):
             _title = _item['title']
+            if make_bold:
+                _title = '[B]%s[/B]' % _title
+                pass
             _image = _get_image(_item, 'portrait', _width=440)
             _fanart = _get_image(_item, 'background', _width=1280, _height=720, fallback=self.get_fanart(context))
 
             _path = _get_path_from_url(_item, 'episodes')
             # in the case of the main channel, we sometime get no correct uri for the episodes of the show
             # we try to compensate the problem here
-            if _path == '/':
+            if not _path or _path == '/':
                 _show_id = _item['id']
-                _path = 'shows/%s/episodes' % _show_id
+                _path = 'redbull/shows/%s/episodes' % _show_id
                 pass
             _show_item = DirectoryItem(_title, uri=context.create_uri([_path]), image=_image, fanart=_fanart)
             return _show_item
@@ -239,15 +248,30 @@ class Provider(kodion.AbstractProvider):
                 raise kodion.KodionException('Unknown feature type "%s"' % feature_type)
             pass
 
+        search_results = response.get('search_results', [])
+        for search_result in search_results:
+            search_result_type = search_result.get('type', '')
+            if search_result_type == 'clip' or search_result_type == 'episode' or search_result_type == 'film':
+                video_item = _do_video_item(search_result)
+                videos.append(video_item)
+                pass
+            elif search_result_type == 'series':
+                show_item = _do_show_item(search_result, make_bold=True)
+                shows.append(show_item)
+                pass
+            else:
+                raise kodion.KodionException('Unknown search result type "%s"' % search_result_type)
+            pass
+
         result.extend(shows)
         result.extend(videos)
 
-        if len(videos) > 0:
-            context.set_content_type(kodion.constants.content_type.EPISODES)
-            pass
-
         if len(shows) > 0:
             context.set_content_type(kodion.constants.content_type.TV_SHOWS)
+            pass
+
+        if len(videos) > 0:
+            context.set_content_type(kodion.constants.content_type.EPISODES)
             pass
 
         #meta (next page)
@@ -269,6 +293,12 @@ class Provider(kodion.AbstractProvider):
             pass
 
         return result
+
+    def on_search(self, search_text, context, re_match):
+        client = self.get_client(context)
+        offset = context.get_param('offset', None)
+        limit = context.get_param('limit', None)
+        return self._response_to_items(context, client.search(query=search_text, offset=offset, limit=limit))
 
     def on_root(self, context, re_match):
         result = []

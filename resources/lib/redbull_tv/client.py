@@ -6,7 +6,8 @@ from resources.lib.kodion import simple_requests as requests
 class Client():
     API_URL = 'https://api.redbull.tv/v1/'
 
-    def __init__(self):
+    def __init__(self, limit=None):
+        self._limit = limit
         pass
 
     def url_to_path(self, url):
@@ -19,10 +20,26 @@ class Client():
             pass
         return url
 
+    def search(self, query, offset=None, limit=None):
+        params = {'search': query}
+        if offset or offset is not None:
+            params['offset'] = str(offset)
+            pass
+        if self._limit or self._limit is not None:
+            params['limit'] = str(self._limit)
+            pass
+        if limit or limit is not None:
+            params['limit'] = str(limit)
+            pass
+        return self._perform_v1_request(path='search', params=params)
+
     def do_raw(self, path, offset=None, limit=None):
         params = {}
         if offset or offset is not None:
             params['offset'] = str(offset)
+            pass
+        if self._limit or self._limit is not None:
+            params['limit'] = str(self._limit)
             pass
         if limit or limit is not None:
             params['limit'] = str(limit)
@@ -45,7 +62,10 @@ class Client():
         if not headers:
             headers = {}
             pass
-        _headers = {}
+        _headers = {'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 5.0.1; GT-I9505 Build/LRX22C)',
+                    'Host': 'api.redbull.tv',
+                    'Connection': 'Keep-Alive',
+                    'Accept-Encoding': 'gzip'}
         _headers.update(headers)
 
         # url
