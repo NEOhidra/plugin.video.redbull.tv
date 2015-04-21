@@ -96,8 +96,12 @@ class Provider(kodion.AbstractProvider):
         def _do_channel_content(_item):
             _result = []
 
+            _show_sub_channels = context.get_param('sub-channels', '1') == '1'
             _make_bold = False
             _sub_channels = _item.get('sub_channels', [])
+            if not _show_sub_channels:
+                _sub_channels = []
+                pass
             if len(_sub_channels) > 0:
                 _make_bold = True
                 pass
@@ -107,6 +111,10 @@ class Provider(kodion.AbstractProvider):
 
             # based on the channel id we can change the sub categories
             _channel_id = context.get_param('channel_id', '')
+            if _channel_id == 'sports' and _show_sub_channels:
+                _channel_sub_category_dict['sports'] = []
+                pass
+
             _sub_categories = _channel_sub_category_dict.get(_channel_id, ['shows', 'films', 'videos', 'clips'])
             for _sub_category in _sub_categories:
                 _sub_category_path = _get_path_from_url(_item, _sub_category)
@@ -119,6 +127,17 @@ class Provider(kodion.AbstractProvider):
                     _sub_category_item.set_fanart(self.get_fanart(context))
                     _result.append(_sub_category_item)
                     pass
+                pass
+
+            # in case of sport we show 'All Sports' like the web page
+            if _channel_id == 'sports' and _show_sub_channels:
+                new_params = {}
+                new_params.update(context.get_params())
+                new_params['sub-channels'] = '0'
+                new_context = context.clone(new_params=new_params)
+                _all_sports_items = DirectoryItem('All Sports', uri=new_context.get_uri())
+                _all_sports_items.set_fanart(self.get_fanart(context))
+                _result.append(_all_sports_items)
                 pass
 
             # sub channels
