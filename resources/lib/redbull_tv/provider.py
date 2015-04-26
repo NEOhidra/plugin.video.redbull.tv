@@ -132,10 +132,15 @@ class Provider(kodion.AbstractProvider):
 
             # Red Bull TV needs some different sub menus
             if _channel_id == 'main':
-                # featured shows
+                # Featured Shows
                 _featured_shows_item = DirectoryItem('Featured Shows', context.create_uri(['redbull', 'shows']))
                 _featured_shows_item.set_fanart(self.get_fanart(context))
                 _result.append(_featured_shows_item)
+
+                # Recently Added
+                _recently_added_item = DirectoryItem('Recently Added', context.create_uri(['redbull', 'videos']))
+                _recently_added_item.set_fanart(self.get_fanart(context))
+                _result.append(_recently_added_item)
                 pass
 
             # in case of sport we show 'All Sports' like the web page
