@@ -141,6 +141,12 @@ class Provider(kodion.AbstractProvider):
                 _featured_shows_item.set_fanart(self.get_fanart(context))
                 _result.append(_featured_shows_item)
 
+                # Latest Films
+                _latest_films_item = DirectoryItem('Latest Films',
+                                                   context.create_uri(['redbull', 'channels', 'sports', 'films']))
+                _latest_films_item.set_fanart(self.get_fanart(context))
+                _result.append(_latest_films_item)
+
                 # Recently Added
                 _recently_added_item = DirectoryItem('Recently Added', context.create_uri(['redbull', 'videos']))
                 _recently_added_item.set_fanart(self.get_fanart(context))
@@ -259,7 +265,7 @@ class Provider(kodion.AbstractProvider):
             pass
         result.extend(channels)
 
-        #shows
+        # shows
         shows = []
         response_shows = response.get('shows', [])
         for response_show in response_shows:
@@ -347,7 +353,7 @@ class Provider(kodion.AbstractProvider):
             return False
 
         client = self.get_client(context)
-        streams = client.get_streams(video_id, bandwidth=1) # middle
+        streams = client.get_streams(video_id, bandwidth=1)  # middle
         stream = kodion.utils.find_best_fit(streams, _compare)
         uri_item = UriItem(stream['url'])
         return uri_item
