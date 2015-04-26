@@ -1,4 +1,5 @@
-1.1.0 (2015-04-26)
+1.1.0~beta (2015-04-26)
+ADD: support for 'Live' events
 ADD: support for 'Replays' and 'Upcoming' events
 ADD: 'Latest Films' (Red Bull TV)
 ADD: 'Recently Added' (Red Bull TV)

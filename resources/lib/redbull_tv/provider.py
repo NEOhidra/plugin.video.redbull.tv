@@ -147,6 +147,20 @@ class Provider(kodion.AbstractProvider):
                                                                              'next_page_allowed': '0'}))
                 _replays_item.set_fanart(self.get_fanart(context))
                 _result.append(_replays_item)
+
+                # try to find a live stream
+                _new_params = {}
+                _new_params.update(context.get_params())
+                _new_params['event_type'] = 'live'
+                _new_params['next_page_allowed'] = '0'
+                _new_path = '/channels/live/'
+                _new_context = context.clone(new_path=_new_path, new_params=_new_params)
+                _live_result = self._response_to_items(_new_context, client.do_raw(path='videos/event_streams', limit=100))
+                if len(_live_result) > 0:
+                    for _item in _live_result:
+                        _result.append(_item)
+                        pass
+                    pass
                 pass
 
             # Red Bull TV needs some different sub menus
@@ -270,14 +284,22 @@ class Provider(kodion.AbstractProvider):
                 pass
             _status = _stream.get('status', '')
             if _status in ['replay', 'complete']:
-                #_video_item.set_title('[B][Replay][/B] %s' % _video_item.get_title())
+                # _video_item.set_title('[B][Replay][/B] %s' % _video_item.get_title())
                 # do nothing
                 pass
             elif _status in ['live']:
                 _video_item.set_title('[B][Live][/B] %s' % _video_item.get_title())
                 pass
             elif _status in ['pre-event', 'soon']:
-                _video_item.set_title('[B][Upcoming][/B] %s' % _video_item.get_title())
+                try:
+                    _starts_at = _stream.get('starts_at', '')
+                    start_time = _published = kodion.utils.datetime_parser.parse(_starts_at)
+                    date_str = context.format_date_short(start_time)
+                    time_str = context.format_time(start_time)
+                    _video_item.set_title('[B][%s %s (GMT)][/B] %s' % (date_str, time_str, _video_item.get_title()))
+                except:
+                    _video_item.set_title('[B][Upcoming][/B] %s' % _video_item.get_title())
+                    pass
                 pass
 
             # Fallback: we try to calculate a duration based on the event
@@ -362,7 +384,8 @@ class Provider(kodion.AbstractProvider):
                     pass
                 status = stream.get('status', '')
                 if (event_type == 'replay' and status in ['replay', 'complete']) or (
-                                event_type == 'upcoming' and status in ['pre-event', 'soon']):
+                                event_type == 'upcoming' and status in ['pre-event', 'soon']) or (
+                                event_type == 'live' and status in ['live']):
                     video_item = _do_video_item(response_video)
                     videos.append(video_item)
                     pass

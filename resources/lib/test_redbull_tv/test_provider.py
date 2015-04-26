@@ -25,6 +25,15 @@ class TestProvider(unittest.TestCase):
         items = result[0]
         pass
 
+    def test_on_channel_live(self):
+        provider = Provider()
+
+        path = kodion.utils.create_path('/redbull/channels/live/')
+        context = kodion.Context(path=path, params={'channel_id': 'live'})
+        result = provider.navigate(context)
+        items = result[0]
+        pass
+
     def test_on_channel_sports_shows(self):
         provider = Provider()
 
