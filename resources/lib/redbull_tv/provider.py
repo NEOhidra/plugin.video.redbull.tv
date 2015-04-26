@@ -263,23 +263,25 @@ class Provider(kodion.AbstractProvider):
                     pass
                 pass
 
-            if not _duration:
-                # try stream - we also add the information of 'replace', 'upcoming' here
-                _stream = _item.get('stream', {})
-                if _stream is None:
-                    _stream = {}
-                    pass
-                _status = _stream.get('status', '')
-                if _status in ['replay', 'complete']:
-                    _video_item.set_title('[B][Replay][/B] %s' % _video_item.get_title())
-                    pass
-                elif _status in ['live']:
-                    _video_item.set_title('[B][Live][/B] %s' % _video_item.get_title())
-                    pass
-                elif _status in ['pre-event', 'soon']:
-                    _video_item.set_title('[B][Upcoming][/B] %s' % _video_item.get_title())
-                    pass
+            # update events based on their status
+            _stream = _item.get('stream', {})
+            if _stream is None:
+                _stream = {}
+                pass
+            _status = _stream.get('status', '')
+            if _status in ['replay', 'complete']:
+                #_video_item.set_title('[B][Replay][/B] %s' % _video_item.get_title())
+                # do nothing
+                pass
+            elif _status in ['live']:
+                _video_item.set_title('[B][Live][/B] %s' % _video_item.get_title())
+                pass
+            elif _status in ['pre-event', 'soon']:
+                _video_item.set_title('[B][Upcoming][/B] %s' % _video_item.get_title())
+                pass
 
+            # Fallback: we try to calculate a duration based on the event
+            if not _duration:
                 try:
                     _starts_at = _stream.get('starts_at', '')
                     _ends_at = _stream.get('ends_at', '')

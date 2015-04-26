@@ -97,6 +97,17 @@ class TestProvider(unittest.TestCase):
         items = result[0]
         pass
 
+    def test_on_channel_live_upcoming(self):
+        provider = Provider()
+
+        path = kodion.utils.create_path('/redbull/videos/event_streams')
+        context = kodion.Context(path=path, params={'limit': '100',
+                                                    'event_type': 'upcoming',
+                                                    'next_page_allowed': '0'})
+        result = provider.navigate(context)
+        items = result[0]
+        pass
+
     def test_on_channel_live_replay(self):
         provider = Provider()
 
