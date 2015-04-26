@@ -109,7 +109,8 @@ class Provider(kodion.AbstractProvider):
 
             # Map for sub menus of each channel
             # main is an exception: will always be empty and filled up manually
-            _channel_sub_category_dict = {'main': []}
+            _channel_sub_category_dict = {'main': [],
+                                          'live': ['featured']}
             _channel_id = context.get_param('channel_id', '')
             if _channel_id == 'sports' and _show_sub_channels:
                 _channel_sub_category_dict['sports'] = []
@@ -129,12 +130,40 @@ class Provider(kodion.AbstractProvider):
                     pass
                 pass
 
+            # Live
+            if _channel_id == 'live':
+                # Upcoming
+                _upcoming_item = DirectoryItem('Upcoming', context.create_uri(['redbull', 'videos', 'event_streams'],
+                                                                              {'limit': '100',
+                                                                               'event_type': 'upcoming',
+                                                                               'next_page_allowed': '0'}))
+                _upcoming_item.set_fanart(self.get_fanart(context))
+                _result.append(_upcoming_item)
+
+                # Replays
+                _replays_item = DirectoryItem('Replays', context.create_uri(['redbull', 'videos', 'event_streams'],
+                                                                            {'limit': '100',
+                                                                             'event_type': 'replay',
+                                                                             'next_page_allowed': '0'}))
+                _replays_item.set_fanart(self.get_fanart(context))
+                _result.append(_replays_item)
+                pass
+
             # Red Bull TV needs some different sub menus
             if _channel_id == 'main':
                 # Featured
                 _featured_shows_item = DirectoryItem('Featured', context.create_uri(['redbull', 'featured']))
                 _featured_shows_item.set_fanart(self.get_fanart(context))
                 _result.append(_featured_shows_item)
+
+                # Upcoming Live Events
+                _upcoming_live_events_item = DirectoryItem('Upcoming Live Events',
+                                                           context.create_uri(['redbull', 'videos', 'event_streams'],
+                                                                              {'limit': '100',
+                                                                               'event_type': 'upcoming',
+                                                                               'next_page_allowed': '0'}))
+                _upcoming_live_events_item.set_fanart(self.get_fanart(context))
+                _result.append(_upcoming_live_events_item)
 
                 # Featured Shows
                 _featured_shows_item = DirectoryItem('Featured Shows', context.create_uri(['redbull', 'shows']))
@@ -151,6 +180,15 @@ class Provider(kodion.AbstractProvider):
                 _recently_added_item = DirectoryItem('Recently Added', context.create_uri(['redbull', 'videos']))
                 _recently_added_item.set_fanart(self.get_fanart(context))
                 _result.append(_recently_added_item)
+
+                # Past Live Events
+                _past_live_events_item = DirectoryItem('Past Live Events',
+                                                       context.create_uri(['redbull', 'videos', 'event_streams'],
+                                                                          {'limit': '100',
+                                                                           'event_type': 'replay',
+                                                                           'next_page_allowed': '0'}))
+                _past_live_events_item.set_fanart(self.get_fanart(context))
+                _result.append(_past_live_events_item)
                 pass
 
             # in case of sport we show 'All Sports' like the web page
@@ -214,11 +252,46 @@ class Provider(kodion.AbstractProvider):
 
             _duration = _item.get('duration', '')
             if _duration:
-                _duration = kodion.utils.datetime_parser.parse(_duration)
-                _seconds = _duration.second
-                _seconds += _duration.minute * 60
-                _seconds += _duration.hour * 60 * 60
-                _video_item.set_duration_from_seconds(_seconds)
+                try:
+                    _duration = kodion.utils.datetime_parser.parse(_duration)
+                    _seconds = _duration.second
+                    _seconds += _duration.minute * 60
+                    _seconds += _duration.hour * 60 * 60
+                    _video_item.set_duration_from_seconds(_seconds)
+                except:
+                    _duration = ''
+                    pass
+                pass
+
+            if not _duration:
+                # try stream - we also add the information of 'replace', 'upcoming' here
+                _stream = _item.get('stream', {})
+                if _stream is None:
+                    _stream = {}
+                    pass
+                _status = _stream.get('status', '')
+                if _status in ['replay', 'complete']:
+                    _video_item.set_title('[B][Replay][/B] %s' % _video_item.get_title())
+                    pass
+                elif _status in ['live']:
+                    _video_item.set_title('[B][Live][/B] %s' % _video_item.get_title())
+                    pass
+                elif _status in ['pre-event', 'soon']:
+                    _video_item.set_title('[B][Upcoming][/B] %s' % _video_item.get_title())
+                    pass
+
+                try:
+                    _starts_at = _stream.get('starts_at', '')
+                    _ends_at = _stream.get('ends_at', '')
+                    if _starts_at and _ends_at:
+                        start_time = _published = kodion.utils.datetime_parser.parse(_starts_at)
+                        end_time = _published = kodion.utils.datetime_parser.parse(_ends_at)
+                        _duration = end_time - start_time
+                        _video_item.set_duration_from_seconds(_duration.seconds)
+                        pass
+                except:
+                    # do nothing
+                    pass
                 pass
 
             _published = _item.get('published_on', '')
@@ -257,9 +330,6 @@ class Provider(kodion.AbstractProvider):
         channels = []
         response_channels = response.get('channels', [])
         for response_channel in response_channels:
-            if response_channel.get('id', '') == 'live':
-                continue
-
             channel_item = _do_channel_item(response_channel)
             channels.append(channel_item)
             pass
@@ -273,18 +343,38 @@ class Provider(kodion.AbstractProvider):
             shows.append(show_item)
             pass
 
-        #videos
+        # videos
         videos = []
         response_videos = response.get('videos', [])
-        for respnse_video in response_videos:
-            video_item = _do_video_item(respnse_video)
-            videos.append(video_item)
+        event_type = context.get_param('event_type', '')
+        for response_video in response_videos:
+            if not event_type:
+                video_item = _do_video_item(response_video)
+                videos.append(video_item)
+                pass
+            else:
+                # filter based on an event type
+                stream = response_video.get('stream', {})
+                if stream is None:
+                    stream = {}
+                    pass
+                status = stream.get('status', '')
+                if (event_type == 'replay' and status in ['replay', 'complete']) or (
+                                event_type == 'upcoming' and status in ['pre-event', 'soon']):
+                    video_item = _do_video_item(response_video)
+                    videos.append(video_item)
+                    pass
+                pass
+            pass
+        # in case of upcoming videos we reverse the order
+        if event_type == 'upcoming':
+            videos = videos[::-1]
             pass
 
         featured_items = response.get('featured_items', [])
         for featured_item in featured_items:
             feature_type = featured_item.get('type', '')
-            if feature_type == 'clip' or feature_type == 'episode' or feature_type == 'film':
+            if feature_type == 'clip' or feature_type == 'episode' or feature_type == 'film' or feature_type == 'event_stream':
                 video_item = _do_video_item(featured_item)
                 videos.append(video_item)
                 pass
@@ -322,9 +412,10 @@ class Provider(kodion.AbstractProvider):
             context.set_content_type(kodion.constants.content_type.EPISODES)
             pass
 
-        #meta (next page)
+        # meta (next page)
+        next_page_allowed = context.get_param('next_page_allowed', '1') == '1'
         next_page = _get_path_from_url(response, 'next_page')
-        if next_page:
+        if next_page_allowed and next_page:
             next_page_url = response.get('meta', {}).get('links', {}).get('next_page', '')
             next_page_url = next_page_url.split('?')
             if len(next_page_url) > 1:

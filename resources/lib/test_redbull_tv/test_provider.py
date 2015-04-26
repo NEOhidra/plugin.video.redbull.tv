@@ -88,6 +88,26 @@ class TestProvider(unittest.TestCase):
         items = result[0]
         pass
 
+    def test_on_channel_live_featured(self):
+        provider = Provider()
+
+        path = kodion.utils.create_path('/redbull/channels/live/featured')
+        context = kodion.Context(path=path)
+        result = provider.navigate(context)
+        items = result[0]
+        pass
+
+    def test_on_channel_live_replay(self):
+        provider = Provider()
+
+        path = kodion.utils.create_path('/redbull/videos/event_streams')
+        context = kodion.Context(path=path, params={'limit': '100',
+                                                    'event_type': 'replay',
+                                                    'next_page_allowed': '0'})
+        result = provider.navigate(context)
+        items = result[0]
+        pass
+
     def test_on_search(self):
         provider = Provider()
 
