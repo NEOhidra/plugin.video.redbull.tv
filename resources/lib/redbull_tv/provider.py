@@ -18,7 +18,8 @@ class Provider(kodion.AbstractProvider):
                                 'redbull.videos': 30502,
                                 'redbull.clips': 30503,
                                 'redbull.featured': 30504,
-                                'redbull.featured_shows': 30505})
+                                'redbull.featured_shows': 30505,
+                                'redbull.event.upcoming': 30506})
         self._client = None
         pass
 
@@ -155,7 +156,8 @@ class Provider(kodion.AbstractProvider):
                 _new_params['next_page_allowed'] = '0'
                 _new_path = '/channels/live/'
                 _new_context = context.clone(new_path=_new_path, new_params=_new_params)
-                _live_result = self._response_to_items(_new_context, client.do_raw(path='videos/event_streams', limit=100))
+                _live_result = self._response_to_items(_new_context,
+                                                       client.do_raw(path='videos/event_streams', limit=100))
                 if len(_live_result) > 0:
                     for _item in _live_result:
                         _result.append(_item)
@@ -296,7 +298,7 @@ class Provider(kodion.AbstractProvider):
                     start_time = _published = kodion.utils.datetime_parser.parse(_starts_at)
                     date_str = context.format_date_short(start_time)
                     time_str = context.format_time(start_time)
-                    _video_item.set_title('[B][%s %s (GMT)][/B] %s' % (date_str, time_str, _video_item.get_title()))
+                    _video_item.set_title('[B]%s %s (GMT)[/B] %s' % (date_str, time_str, _video_item.get_title()))
                 except:
                     _video_item.set_title('[B][Upcoming][/B] %s' % _video_item.get_title())
                     pass
@@ -471,6 +473,12 @@ class Provider(kodion.AbstractProvider):
         client = self.get_client(context)
         streams = client.get_streams(video_id, bandwidth=1)  # middle
         stream = kodion.utils.find_best_fit(streams, _compare)
+
+        if stream.get('upcoming', False):
+            context.get_ui().show_notification(context.localize(self._local_map['redbull.event.upcoming']),
+                                               time_milliseconds=5000)
+            return False
+
         uri_item = UriItem(stream['url'])
         return uri_item
 

@@ -18,6 +18,20 @@ class Client():
         path = 'videos/%s' % str(video_id)
         json_data = self._perform_v1_request(path=path)
         #uri = json_data.get('videos', {}).get('live', {}).get('uri', '')
+        stream = json_data.get('stream', {})
+        if stream is None:
+            stream = {}
+            pass
+        if stream.get('status', '') in ['pre-event', 'soon']:
+            format = {'width': 0,
+                      'height': 0,
+                      'bandwidth': 0}
+            video_stream = {'url': '',
+                            'format': format,
+                            'upcoming': True}
+            streams.append(video_stream)
+            return streams
+
         videos = json_data.get('videos', {})
         uri = ''
         for key in ['master', 'live']:
