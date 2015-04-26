@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import urlparse
+from xml.dom.minidom import _append_child
 from resources.lib.kodion.items import DirectoryItem, VideoItem, NextPageItem, UriItem
 
 __author__ = 'bromix'
@@ -107,7 +108,7 @@ class Provider(kodion.AbstractProvider):
                 pass
 
             # alternative dict for sub categories based on the channel id
-            _channel_sub_category_dict = {'main': ['featured', 'featured_shows']}
+            _channel_sub_category_dict = {'main': ['featured']}
 
             # based on the channel id we can change the sub categories
             _channel_id = context.get_param('channel_id', '')
@@ -127,6 +128,14 @@ class Provider(kodion.AbstractProvider):
                     _sub_category_item.set_fanart(self.get_fanart(context))
                     _result.append(_sub_category_item)
                     pass
+                pass
+
+            # Red Bull TV needs some different sub menus
+            if _channel_id == 'main':
+                # featured shows
+                _featured_shows_item = DirectoryItem('Featured Shows', context.create_uri(['redbull', 'shows']))
+                _featured_shows_item.set_fanart(self.get_fanart(context))
+                _result.append(_featured_shows_item)
                 pass
 
             # in case of sport we show 'All Sports' like the web page

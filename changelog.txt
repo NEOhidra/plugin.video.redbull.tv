@@ -1,3 +1,6 @@
+1.0.2 (2015-04-26)
+FIX: show correct 'Featured Shows' (Red Bull TV)
+
 1.0.1 (2015-04-22)
 UPD: public release
 
