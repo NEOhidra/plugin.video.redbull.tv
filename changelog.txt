@@ -1,6 +1,7 @@
 1.1.0 (2015-04-26)
 ADD: 'Recently Added' (Red Bull TV)
 FIX: show correct 'Featured Shows' (Red Bull TV)
+FIX: corrected url for 'Featured' (Red Bull TV)
 
 1.0.1 (2015-04-22)
 UPD: public release

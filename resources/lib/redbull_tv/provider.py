@@ -107,10 +107,9 @@ class Provider(kodion.AbstractProvider):
                 _make_bold = True
                 pass
 
-            # alternative dict for sub categories based on the channel id
-            _channel_sub_category_dict = {'main': ['featured']}
-
-            # based on the channel id we can change the sub categories
+            # Map for sub menus of each channel
+            # main is an exception: will always be empty and filled up manually
+            _channel_sub_category_dict = {'main': []}
             _channel_id = context.get_param('channel_id', '')
             if _channel_id == 'sports' and _show_sub_channels:
                 _channel_sub_category_dict['sports'] = []
@@ -132,6 +131,11 @@ class Provider(kodion.AbstractProvider):
 
             # Red Bull TV needs some different sub menus
             if _channel_id == 'main':
+                # Featured
+                _featured_shows_item = DirectoryItem('Featured', context.create_uri(['redbull', 'featured']))
+                _featured_shows_item.set_fanart(self.get_fanart(context))
+                _result.append(_featured_shows_item)
+
                 # Featured Shows
                 _featured_shows_item = DirectoryItem('Featured Shows', context.create_uri(['redbull', 'shows']))
                 _featured_shows_item.set_fanart(self.get_fanart(context))
