@@ -1,4 +1,7 @@
-1.2.0 (2015-05-11)
+1.2.0~beta2 (2015-05-11)
+UPD: kodion
+
+1.2.0~beta1 (2015-05-11)
 ADD: caching
 UPD: code cleaning
 FIX: find LIVE stream
