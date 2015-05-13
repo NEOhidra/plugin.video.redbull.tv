@@ -474,17 +474,16 @@ class Provider(kodion.AbstractProvider):
 
     @kodion.RegisterProviderPath('^/play/$')
     def on_play(self, context, re_match):
-        def _compare(item):
-            vq = context.get_settings().get_video_quality()
-            return vq - item['format'].get('height', 0)
-
         video_id = context.get_param('video_id', '')
         if not video_id:
             return False
 
         client = self.get_client(context)
-        streams = client.get_streams(video_id, bandwidth=1)  # middle
-        stream = kodion.utils.find_best_fit(streams, _compare)
+        streams = client.get_streams(video_id)
+        stream = kodion.utils.select_stream(context, streams)
+
+        if stream is None:
+            return False
 
         if stream.get('upcoming', False):
             context.get_ui().show_notification(context.localize(self._local_map['redbull.event.upcoming']),
