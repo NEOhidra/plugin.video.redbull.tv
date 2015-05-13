@@ -1,4 +1,4 @@
-1.2.0~beta2 (2015-05-11)
+1.2.0~beta2 (2015-05-13)
 ADD: ask for video quality (optional)
 UPD: kodion
 
