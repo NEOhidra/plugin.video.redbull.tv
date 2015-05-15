@@ -1,10 +1,9 @@
-1.2.0~beta2 (2015-05-13)
+1.2.0 (2015-05-15)
 ADD: ask for video quality (optional)
-UPD: kodion
-
-1.2.0~beta1 (2015-05-11)
 ADD: caching
 UPD: code cleaning
+UPD: kodion
+FIX: don't provide selectable streams for upcoming live events
 FIX: find LIVE stream
 
 1.1.0 (2015-04-26)
