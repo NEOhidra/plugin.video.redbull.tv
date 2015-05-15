@@ -60,10 +60,11 @@ class Client():
                     width = int(re_match_resolution.group('width'))
                     height = int(re_match_resolution.group('height'))
                     bandwidth = int(re_match_bandwidth.group('bandwidth'))
+                    display_bandwidth = '%.0f kbps' % (bandwidth / 1024)
                     url = lines[i + 1]
-                    title = '[B]%dx%d[/B]@%d' % (width, height, bandwidth)
-                    if height in [1080, 720, 480, 360, 240]:
-                        title = '[B]%dp[/B]@%d' % (height, bandwidth)
+                    title = '[B]%dx%d[/B] (%s)' % (width, height, display_bandwidth)
+                    if height in [1080, 720, 540, 480, 360, 240]:
+                        title = '[B]%dp[/B] (%s)' % (height, display_bandwidth)
                         pass
                     video_stream = {
                         'title': title,
